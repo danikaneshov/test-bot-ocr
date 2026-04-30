@@ -1,79 +1,76 @@
 import asyncio
-import base64
 import io
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
-from groq import Groq
+import google.generativeai as genai
 
 # --- НАСТРОЙКИ ---
-# Твои ключи сохранены
+# Твои рабочие ключи
 BOT_TOKEN = "7777795241:AAHbw82y19ex_9_fMK550RLcBCPJP-vvwVU"
-GROQ_API_KEY = "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"
+GEMINI_API_KEY = "AIzaSyCA7f_bsapb8uLta8dmv2JbrRjLJy6d_3Y"
+
+# Настройка Gemini
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=(
+        "Ты — эксперт по учету продаж. Твоя задача: проанализировать изображение "
+        "(отчет, чек или список) и найти количество продаж для двух позиций:\n"
+        "1. 'Дымный коктейль'\n"
+        "2. 'Дымный коктейль 2'\n\n"
+        "Выдай ответ строго в этом формате:\n"
+        "Дымный коктейль: [число]\n"
+        "Дымный коктейль 2: [число]\n\n"
+        "Если позиция не найдена, пиши 0. Никаких лишних пояснений не давай."
+    )
+)
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
-client = Groq(api_key=GROQ_API_KEY)
-
-# Промпт для модели
-SYSTEM_PROMPT = """
-Ты — ассистент по учету продаж. Твоя задача — внимательно изучить фотографию (это может быть список от руки, экран монитора или чек).
-Найди и посчитай количество упоминаний или количество проданных единиц для двух позиций:
-1. "Дымный коктейль"
-2. "Дымный коктейль 2"
-
-Выдай ответ строго в формате:
-Дымный коктейль: [количество]
-Дымный коктейль 2: [количество]
-Если позиций нет, пиши 0. Не пиши лишнего текста.
-"""
-
-def encode_image(image_bytes):
-    return base64.b64encode(image_bytes).decode('utf-8')
 
 @dp.message(F.photo)
 async def handle_photo(message: Message):
-    wait_msg = await message.answer("Анализирую фото, подождите...")
+    wait_msg = await message.answer("Анализирую фото, секунду...")
     
-    # Скачиваем фото в память
+    # Получаем фото в лучшем качестве
     photo = message.photo[-1]
     file_info = await bot.get_file(photo.file_id)
     photo_bytes = await bot.download_file(file_info.file_path)
     
-    # Превращаем в base64
-    base64_image = encode_image(photo_bytes.getvalue())
-
     try:
-        # Отправляем в Groq с обновленной моделью
-        completion = client.chat.completions.create(
-            model="llama-3.2-11b-vision-instant", 
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": "Сколько тут продаж этих позиций?"},
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
-                        }
-                    ]
-                }
-            ],
-            temperature=0.1, # Низкая температура для точности
-        )
+        # Подготовка данных для Gemini
+        image_parts = [
+            {
+                "mime_type": "image/jpeg",
+                "data": photo_bytes.getvalue()
+            }
+        ]
         
-        result = completion.choices[0].message.content
-        await wait_msg.edit_text(f"Результаты анализа:\n\n{result}")
+        # Запрос к нейронке
+        response = model.generate_content([
+            "Посчитай количество продаж указанных позиций на этом фото.",
+            image_parts[0]
+        ])
+        
+        # Отправляем результат пользователю
+        await wait_msg.edit_text(f"Результаты анализа:\n\n{response.text}")
     
     except Exception as e:
-        await wait_msg.edit_text(f"Произошла ошибка при обработке: {e}")
+        await wait_msg.edit_text(f"Произошла ошибка: {e}")
 
 @dp.message()
 async def start_info(message: Message):
-    await message.answer("Пришли мне фото отчета или списка продаж, и я посчитаю 'Дымные коктейли'.")
+    await message.answer(
+        "Привет! Скинь мне фото отчета, и я посчитаю продажи 'Дымных коктейлей'.\n"
+        "Я понимаю даже рукописный текст или фото экрана."
+    )
 
 async def main():
+    print("Бот запущен и готов к работе!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Бот выключен")
