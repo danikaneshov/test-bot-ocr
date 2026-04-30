@@ -6,6 +6,7 @@ from aiogram.types import Message
 from groq import Groq
 
 # --- НАСТРОЙКИ ---
+# Твои ключи сохранены
 BOT_TOKEN = "7777795241:AAHbw82y19ex_9_fMK550RLcBCPJP-vvwVU"
 GROQ_API_KEY = "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"
 
@@ -42,9 +43,9 @@ async def handle_photo(message: Message):
     base64_image = encode_image(photo_bytes.getvalue())
 
     try:
-        # Отправляем в Groq
+        # Отправляем в Groq с обновленной моделью
         completion = client.chat.completions.create(
-            model="llama-3.2-11b-vision-preview",
+            model="llama-3.2-11b-vision-instant", 
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {
