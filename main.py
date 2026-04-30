@@ -12,7 +12,7 @@ GEMINI_API_KEY = "AIzaSyCA7f_bsapb8uLta8dmv2JbrRjLJy6d_3Y"
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Твое актуальное название модели
-MODEL_NAME = "gemini-3.1-flash-live-preview"
+MODEL_NAME = "gemini-3.1-flash-lite-preview"
 
 model = genai.GenerativeModel(
     model_name=MODEL_NAME,
