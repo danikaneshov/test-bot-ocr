@@ -6,7 +6,7 @@ from aiogram.types import Message
 
 # --- НАСТРОЙКИ ---
 BOT_TOKEN = "7777795241:AAHbw82y19ex_9_fMK550RLcBCPJP-vvwVU"
-GEMINI_API_KEY = "AIzaSyCA7f_bsapb8uLta8dmv2JbrRjLJy6d_3Y"
+GEMINI_API_KEY = "AIzaSyBg0ZywKR73LfgIvLl_RUoVWnOkqFZ4TxI"
 
 # Настройка Gemini
 genai.configure(api_key=GEMINI_API_KEY)
